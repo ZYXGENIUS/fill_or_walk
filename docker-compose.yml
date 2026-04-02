@@ -1,0 +1,9 @@
+services:
+  web:
+    build: .
+    container_name: fill_or_walk_web
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command: sh -c "python scripts/updater.py && python -m http.server 8000 --directory docs"

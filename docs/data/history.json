@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "fuel_type": "92# gasoline",
+    "benchmark": "Beijing",
+    "unit": "CNY/L",
+    "source_name": "qiyoujiage.com (Beijing benchmark page)",
+    "source_url": "http://www.qiyoujiage.com/beijing.shtml",
+    "window_days": 365,
+    "updated_at": "2026-04-02T13:27:36+08:00"
+  },
+  "prices": [
+    {
+      "date": "2026-04-02",
+      "price": 8.57
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "updated_at": "2026-04-02T13:27:36+08:00",
+  "source": {
+    "name": "qiyoujiage.com (Beijing benchmark page)",
+    "url": "http://www.qiyoujiage.com/beijing.shtml"
+  },
+  "metric": {
+    "fuel_type": "92# gasoline",
+    "benchmark": "Beijing",
+    "unit": "CNY/L",
+    "today_price": 8.57,
+    "window_days": 365,
+    "sample_size": 1,
+    "price_percentile": 100.0,
+    "bargain_index": 100.0,
+    "decision": "FILL",
+    "decision_text": "Price is in a favorable zone.",
+    "delta_from_previous": null
+  },
+  "history_tail": [
+    {
+      "date": "2026-04-02",
+      "price": 8.57
+    }
+  ]
+}

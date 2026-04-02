@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fill or Walk - Fuel Economy Index</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <div class="noise"></div>
+    <main class="page">
+      <header class="hero reveal">
+        <p class="kicker">Fill or Walk</p>
+        <h1>加油经济指数</h1>
+        <p id="updatedAt" class="subtitle">Waiting for latest data...</p>
+      </header>
+
+      <section class="decision-card reveal delay-1">
+        <div>
+          <p class="label">Decision</p>
+          <p id="decisionTag" class="decision">--</p>
+          <p id="decisionText" class="hint">Run updater to load data.</p>
+        </div>
+        <div class="index-wrap">
+          <p class="label">Bargain Index</p>
+          <p id="bargainIndex" class="index">--</p>
+        </div>
+      </section>
+
+      <section class="stats reveal delay-2">
+        <article class="stat-card">
+          <p class="label">Today 92#</p>
+          <p id="todayPrice" class="value">--</p>
+        </article>
+        <article class="stat-card">
+          <p class="label">Price Percentile</p>
+          <p id="pricePercentile" class="value">--</p>
+        </article>
+        <article class="stat-card">
+          <p class="label">Window Sample</p>
+          <p id="sampleSize" class="value">--</p>
+        </article>
+      </section>
+
+      <section class="chart-card reveal delay-3">
+        <div class="section-title-row">
+          <h2>365-Day Benchmark Trend</h2>
+        </div>
+        <canvas id="priceChart" aria-label="fuel price trend" role="img"></canvas>
+      </section>
+
+      <section class="tail-card reveal delay-4">
+        <h2>Recent Snapshot</h2>
+        <ul id="tailList"></ul>
+      </section>
+    </main>
+  </body>
+</html>
