@@ -239,13 +239,16 @@ def compute_metrics(entries: list[DailyPrice], today_price: float) -> dict[str, 
     bargain_index = round(higher_or_equal / sample_size * 100, 2)
 
     decision = "WALK"
-    decision_text = "Price is relatively high in the one-year window."
+    decision_zh = "建议观望"
+    decision_text = "当前价格处于近一年相对高位，建议观望。"
     if bargain_index >= 70:
         decision = "FILL"
-        decision_text = "Price is in a favorable zone."
+        decision_zh = "建议加油"
+        decision_text = "当前价格处于近一年相对低位，建议加油。"
     elif bargain_index >= 40:
         decision = "HOLD"
-        decision_text = "Price is in the middle zone."
+        decision_zh = "按需加油"
+        decision_text = "当前价格处于中位区间，可按需补能。"
 
     delta_from_previous = None
     if sample_size >= 2:
@@ -262,7 +265,9 @@ def compute_metrics(entries: list[DailyPrice], today_price: float) -> dict[str, 
         "price_percentile": price_percentile,
         "bargain_index": bargain_index,
         "decision": decision,
+        "decision_zh": decision_zh,
         "decision_text": decision_text,
+        "decision_text_zh": decision_text,
         "delta_from_previous": delta_from_previous,
     }
 

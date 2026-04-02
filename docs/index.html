@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fill or Walk - Fuel Economy Index</title>
+    <title>加油经济指数 | Fill or Walk</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -20,40 +20,40 @@
       <header class="hero reveal">
         <p class="kicker">Fill or Walk</p>
         <h1>加油经济指数</h1>
-        <p id="updatedAt" class="subtitle">Waiting for latest data...</p>
+        <p id="updatedAt" class="subtitle">正在加载最新数据...</p>
         <p id="historyHint" class="history-hint"></p>
       </header>
 
       <section class="decision-card reveal delay-1">
         <div>
-          <p class="label">Decision</p>
+          <p class="label">决策建议</p>
           <p id="decisionTag" class="decision">--</p>
-          <p id="decisionText" class="hint">Run updater to load data.</p>
+          <p id="decisionText" class="hint">正在读取指数解释...</p>
         </div>
         <div class="index-wrap">
-          <p class="label">Bargain Index</p>
+          <p class="label">划算指数</p>
           <p id="bargainIndex" class="index">--</p>
         </div>
       </section>
 
       <section class="stats reveal delay-2">
         <article class="stat-card">
-          <p class="label">Today 92#</p>
+          <p class="label">今日 92#</p>
           <p id="todayPrice" class="value">--</p>
         </article>
         <article class="stat-card">
-          <p class="label">Price Percentile</p>
+          <p class="label">价格分位</p>
           <p id="pricePercentile" class="value">--</p>
         </article>
         <article class="stat-card">
-          <p class="label">Window Sample</p>
+          <p class="label">样本天数</p>
           <p id="sampleSize" class="value">--</p>
         </article>
       </section>
 
       <section class="chart-card reveal delay-3">
         <div class="section-title-row">
-          <h2>365-Day Benchmark Trend</h2>
+          <h2>近 365 天基准走势</h2>
         </div>
         <p id="chartHint" class="chart-hint"></p>
         <div class="chart-viewport">
@@ -62,7 +62,7 @@
       </section>
 
       <section class="tail-card reveal delay-4">
-        <h2>Recent Snapshot</h2>
+        <h2>最近 7 天快照</h2>
         <ul id="tailList"></ul>
       </section>
     </main>

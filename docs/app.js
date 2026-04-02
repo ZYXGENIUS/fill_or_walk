@@ -8,7 +8,7 @@ function setText(id, value) {
 }
 
 function formatPrice(value) {
-  return Number(value).toFixed(3) + " CNY/L";
+  return Number(value).toFixed(3) + " 元/升";
 }
 
 function formatPercent(value) {
@@ -23,16 +23,68 @@ function setChartHint(text) {
   setText("chartHint", text);
 }
 
+function normalizeDecision(decision) {
+  if (decision === "FILL" || decision === "HOLD" || decision === "WALK") {
+    return decision;
+  }
+  return "HOLD";
+}
+
+function decisionLabel(decision) {
+  if (decision === "FILL") {
+    return "建议加油";
+  }
+  if (decision === "WALK") {
+    return "建议观望";
+  }
+  return "按需加油";
+}
+
+function decisionText(metric, decision) {
+  const zhText = metric && typeof metric.decision_text_zh === "string" ? metric.decision_text_zh : "";
+  if (zhText) {
+    return zhText;
+  }
+
+  const rawText = metric && typeof metric.decision_text === "string" ? metric.decision_text : "";
+  if (/[\u4e00-\u9fff]/.test(rawText)) {
+    return rawText;
+  }
+
+  if (decision === "FILL") {
+    return "当前价格处于近一年相对低位，建议加油。";
+  }
+  if (decision === "WALK") {
+    return "当前价格处于近一年相对高位，建议观望。";
+  }
+  return "当前价格处于中位区间，可按需补能。";
+}
+
+function resolveBargainIndex(metric) {
+  const direct = Number(metric && metric.bargain_index);
+  if (Number.isFinite(direct)) {
+    return Math.min(100, Math.max(0, direct));
+  }
+
+  const percentile = Number(metric && metric.price_percentile);
+  if (Number.isFinite(percentile)) {
+    return Math.min(100, Math.max(0, 100 - percentile));
+  }
+
+  return null;
+}
+
 function paintDecision(decision) {
   const tag = document.getElementById("decisionTag");
   if (!tag) {
     return;
   }
 
+  const normalized = normalizeDecision(decision);
   tag.classList.remove("fill", "hold", "walk");
-  if (decision === "FILL") {
+  if (normalized === "FILL") {
     tag.classList.add("fill");
-  } else if (decision === "HOLD") {
+  } else if (normalized === "HOLD") {
     tag.classList.add("hold");
   } else {
     tag.classList.add("walk");
@@ -78,7 +130,7 @@ function renderChart(points) {
       labels,
       datasets: [
         {
-          label: "Benchmark 92#",
+          label: "基准 92#",
           data: values,
           borderColor: "#0f8a6b",
           backgroundColor: "rgba(15,138,107,0.12)",
@@ -122,15 +174,15 @@ function renderChart(points) {
 }
 
 function renderEmpty() {
-  setText("updatedAt", "No data yet. Run updater script first.");
-  setHistoryHint("History window is empty.");
+  setText("updatedAt", "暂无数据，请先执行更新脚本。");
+  setHistoryHint("历史窗口当前为空。请稍后重试。")
   setText("decisionTag", "--");
-  setText("decisionText", "No decision available.");
+  setText("decisionText", "暂无决策建议。")
   setText("bargainIndex", "--");
   setText("todayPrice", "--");
   setText("pricePercentile", "--");
   setText("sampleSize", "0");
-  setChartHint("No chart data available.");
+  setChartHint("暂无图表数据。");
 }
 
 function render(latest, history) {
@@ -142,16 +194,19 @@ function render(latest, history) {
     return;
   }
 
-  setText("updatedAt", "Updated: " + latest.updated_at);
-  setText("decisionTag", metric.decision);
-  setText("decisionText", metric.decision_text);
-  setText("bargainIndex", formatPercent(metric.bargain_index));
+  const decision = normalizeDecision(metric.decision);
+  const bargainIndex = resolveBargainIndex(metric);
+
+  setText("updatedAt", "更新时间：" + latest.updated_at);
+  setText("decisionTag", decisionLabel(decision));
+  setText("decisionText", decisionText(metric, decision));
+  setText("bargainIndex", bargainIndex === null ? "--" : formatPercent(bargainIndex));
   setText("todayPrice", formatPrice(metric.today_price));
   setText("pricePercentile", formatPercent(metric.price_percentile));
-  setText("sampleSize", String(metric.sample_size));
-  paintDecision(metric.decision);
+  setText("sampleSize", String(metric.sample_size || prices.length));
+  paintDecision(decision);
 
-  const sampleSize = Number(metric.sample_size || 0);
+  const sampleSize = Number(metric.sample_size || prices.length || 0);
   if (sampleSize < 30) {
     setHistoryHint("历史样本较少，系统正在自动回填近一年基准曲线。");
   } else {
@@ -177,7 +232,7 @@ async function bootstrap() {
     ]);
 
     if (!latestRes.ok || !historyRes.ok) {
-      throw new Error("Failed to fetch data files.");
+      throw new Error("数据文件加载失败。");
     }
 
     const latest = await latestRes.json();
@@ -186,7 +241,7 @@ async function bootstrap() {
   } catch (error) {
     console.error(error);
     renderEmpty();
-    setText("decisionText", "Data load failed. Check docs/data JSON files.");
+    setText("decisionText", "数据加载失败，请检查 docs/data 下的 JSON 文件。");
   }
 }
 

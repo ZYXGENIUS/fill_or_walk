@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-02T14:18:46+08:00",
+  "updated_at": "2026-04-02T14:25:15+08:00",
   "source": {
     "name": "qiyoujiage.com (Beijing benchmark page)",
     "url": "http://www.qiyoujiage.com/beijing.shtml"
@@ -14,7 +14,9 @@
     "price_percentile": 100.0,
     "bargain_index": 2.74,
     "decision": "WALK",
-    "decision_text": "Price is relatively high in the one-year window.",
+    "decision_zh": "建议观望",
+    "decision_text": "当前价格处于近一年相对高位，建议观望。",
+    "decision_text_zh": "当前价格处于近一年相对高位，建议观望。",
     "delta_from_previous": 0.0
   },
   "history_status": {
