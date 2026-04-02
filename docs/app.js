@@ -55,6 +55,32 @@ function setChartHint(text) {
   setText("chartHint", text);
 }
 
+function parseDateOnly(isoDate) {
+  return new Date(isoDate + "T00:00:00");
+}
+
+function computePercentile(values, target) {
+  if (!Array.isArray(values) || values.length === 0) {
+    return null;
+  }
+  const numericTarget = Number(target);
+  if (!Number.isFinite(numericTarget)) {
+    return null;
+  }
+  const lowerOrEqual = values.filter((v) => Number(v) <= numericTarget).length;
+  return (lowerOrEqual / values.length) * 100;
+}
+
+function valuesInRange(prices, startDate, endDate) {
+  return prices
+    .filter((item) => {
+      const d = parseDateOnly(item.date);
+      return d >= startDate && d <= endDate;
+    })
+    .map((item) => Number(item.price))
+    .filter((v) => Number.isFinite(v));
+}
+
 function normalizeDecision(decision) {
   if (decision === "FILL" || decision === "HOLD" || decision === "WALK") {
     return decision;
@@ -106,14 +132,42 @@ function resolveBargainIndex(metric) {
   return null;
 }
 
-function resolvePeriodPercentiles(metric) {
+function resolvePeriodPercentiles(metric, prices) {
   const periods = (metric && metric.period_percentiles) || {};
+  const reference =
+    Array.isArray(prices) && prices.length > 0
+      ? parseDateOnly(prices[prices.length - 1].date)
+      : new Date();
+  const todayPrice = Number(metric && metric.today_price);
+
+  const start30 = new Date(reference);
+  start30.setDate(start30.getDate() - 29);
+
+  const start120 = new Date(reference);
+  start120.setDate(start120.getDate() - 119);
+
+  const monthStart = new Date(reference.getFullYear(), reference.getMonth(), 1);
+  const quarterStartMonth = Math.floor(reference.getMonth() / 3) * 3;
+  const quarterStart = new Date(reference.getFullYear(), quarterStartMonth, 1);
+
+  const fallback30 = computePercentile(valuesInRange(prices, start30, reference), todayPrice);
+  const fallbackMonth = computePercentile(valuesInRange(prices, monthStart, reference), todayPrice);
+  const fallbackQuarter = computePercentile(valuesInRange(prices, quarterStart, reference), todayPrice);
+  const fallback120 = computePercentile(valuesInRange(prices, start120, reference), todayPrice);
+
+  const pick = (primary, fallback) => {
+    const p = Number(primary);
+    if (Number.isFinite(p)) {
+      return p;
+    }
+    return fallback;
+  };
 
   return {
-    past30: periods.past_30_days && periods.past_30_days.value,
-    thisMonth: periods.this_month && periods.this_month.value,
-    thisQuarter: periods.this_quarter && periods.this_quarter.value,
-    past120: periods.past_120_days && periods.past_120_days.value,
+    past30: pick(periods.past_30_days && periods.past_30_days.value, fallback30),
+    thisMonth: pick(periods.this_month && periods.this_month.value, fallbackMonth),
+    thisQuarter: pick(periods.this_quarter && periods.this_quarter.value, fallbackQuarter),
+    past120: pick(periods.past_120_days && periods.past_120_days.value, fallback120),
   };
 }
 
@@ -248,7 +302,7 @@ function render(latest, history) {
 
   const decision = normalizeDecision(metric.decision);
   const bargainIndex = resolveBargainIndex(metric);
-  const periodPercentiles = resolvePeriodPercentiles(metric);
+  const periodPercentiles = resolvePeriodPercentiles(metric, prices);
 
   setText("updatedAt", "更新时间：" + latest.updated_at);
   setText("decisionTag", decisionLabel(decision));
@@ -288,9 +342,10 @@ function render(latest, history) {
 
 async function bootstrap() {
   try {
+    const cacheBust = Date.now();
     const [latestRes, historyRes] = await Promise.all([
-      fetch("./data/latest.json", { cache: "no-store" }),
-      fetch("./data/history.json", { cache: "no-store" }),
+      fetch(`./data/latest.json?v=${cacheBust}`, { cache: "no-store" }),
+      fetch(`./data/history.json?v=${cacheBust}`, { cache: "no-store" }),
     ]);
 
     if (!latestRes.ok || !historyRes.ok) {
