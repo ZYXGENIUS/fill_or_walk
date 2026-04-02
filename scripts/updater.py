@@ -16,6 +16,12 @@ SOURCE_URL = "http://www.qiyoujiage.com/beijing.shtml"
 SOURCE_NAME = "qiyoujiage.com (Beijing benchmark page)"
 WINDOW_DAYS = 365
 
+EASTMONEY_API_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get"
+EASTMONEY_SOURCE_NAME = "Eastmoney datacenter oil reports"
+EASTMONEY_DATE_REPORT = "RPTA_WEB_YJ_RQ"
+EASTMONEY_CITY_REPORT = "RPTA_WEB_YJ_JH"
+BENCHMARK_CITY_CN = "\u5317\u4eac"
+
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "docs" / "data"
 HISTORY_PATH = DATA_DIR / "history.json"
@@ -78,6 +84,120 @@ def fetch_benchmark_92_price() -> float:
         return round(float(fallback.group(1)), 3)
 
     raise RuntimeError("Cannot locate 92# benchmark price on source page.")
+
+
+def eastmoney_request(params: dict[str, Any]) -> dict[str, Any]:
+    response = requests.get(EASTMONEY_API_URL, params=params, headers=HEADERS, timeout=20)
+    response.raise_for_status()
+
+    payload = response.json()
+    if not payload.get("success"):
+        message = payload.get("message", "unknown error")
+        raise RuntimeError(f"Eastmoney API error: {message}")
+
+    return payload
+
+
+def fetch_adjustment_dates(max_rows: int = 300) -> list[date]:
+    payload = eastmoney_request(
+        {
+            "reportName": EASTMONEY_DATE_REPORT,
+            "columns": "ALL",
+            "sortColumns": "DIM_DATE",
+            "sortTypes": -1,
+            "pageNumber": 1,
+            "pageSize": max_rows,
+            "source": "WEB",
+        }
+    )
+
+    rows = (payload.get("result") or {}).get("data") or []
+    parsed: set[date] = set()
+    for row in rows:
+        raw_day = str(row.get("DIM_DATE", ""))[:10]
+        if not raw_day:
+            continue
+        try:
+            parsed.add(date.fromisoformat(raw_day))
+        except ValueError:
+            continue
+
+    return sorted(parsed)
+
+
+def fetch_beijing_92_on_adjust_date(adjust_day: date) -> float | None:
+    payload = eastmoney_request(
+        {
+            "reportName": EASTMONEY_CITY_REPORT,
+            "columns": "ALL",
+            "filter": f"(DIM_DATE='{adjust_day.isoformat()}')",
+            "sortColumns": "FIRST_LETTER",
+            "sortTypes": 1,
+            "pageNumber": 1,
+            "pageSize": 200,
+            "source": "WEB",
+        }
+    )
+
+    rows = (payload.get("result") or {}).get("data") or []
+    for row in rows:
+        city_name = str(row.get("CITYNAME", ""))
+        if city_name != BENCHMARK_CITY_CN:
+            continue
+        value = row.get("V92")
+        if value is None:
+            return None
+        try:
+            return round(float(value), 3)
+        except (TypeError, ValueError):
+            return None
+
+    return None
+
+
+def date_range(start: date, end: date) -> list[date]:
+    total = (end - start).days
+    return [start + timedelta(days=offset) for offset in range(total + 1)]
+
+
+def build_bootstrap_daily_history(today: date) -> list[DailyPrice]:
+    start_day = today - timedelta(days=WINDOW_DAYS - 1)
+
+    adjust_days = [day for day in fetch_adjustment_dates() if day <= today]
+    if not adjust_days:
+        return []
+
+    anchor_candidates = [day for day in adjust_days if day <= start_day]
+    anchor_day = max(anchor_candidates) if anchor_candidates else adjust_days[0]
+
+    needed_days = sorted({anchor_day, *[day for day in adjust_days if day >= start_day]})
+    price_points: list[tuple[date, float]] = []
+
+    for day in needed_days:
+        try:
+            price = fetch_beijing_92_on_adjust_date(day)
+        except Exception as exc:  # pragma: no cover - network edge case
+            print(f"Warning: failed to fetch adjustment price for {day.isoformat()}: {exc}")
+            continue
+        if price is None:
+            continue
+        price_points.append((day, price))
+
+    if not price_points:
+        return []
+
+    price_points.sort(key=lambda item: item[0])
+    point_idx = 0
+    current_price = price_points[0][1]
+
+    output: list[DailyPrice] = []
+    for day in date_range(start_day, today):
+        while point_idx + 1 < len(price_points) and price_points[point_idx + 1][0] <= day:
+            point_idx += 1
+            current_price = price_points[point_idx][1]
+        output.append(DailyPrice(date=day.isoformat(), price=round(current_price, 3)))
+
+    return output
 
 
 def normalize_history_entries(raw_entries: list[dict[str, Any]]) -> list[DailyPrice]:
@@ -151,8 +271,6 @@ def main() -> None:
     now_cn = datetime.now(ZoneInfo("Asia/Shanghai"))
     today_str = now_cn.date().isoformat()
 
-    today_price = fetch_benchmark_92_price()
-
     history = load_json(
         HISTORY_PATH,
         {
@@ -170,6 +288,28 @@ def main() -> None:
 
     entries = normalize_history_entries(history.get("prices", []))
 
+    bootstrap_used = False
+    if len(entries) < WINDOW_DAYS:
+        try:
+            bootstrap_entries = build_bootstrap_daily_history(now_cn.date())
+            if bootstrap_entries:
+                bootstrap_used = True
+                merged_by_day = {item.date: item for item in bootstrap_entries}
+                for item in entries:
+                    merged_by_day[item.date] = item
+                entries = [merged_by_day[key] for key in sorted(merged_by_day.keys())]
+        except Exception as exc:  # pragma: no cover - network edge case
+            print(f"Warning: failed to bootstrap one-year history: {exc}")
+
+    try:
+        today_price = fetch_benchmark_92_price()
+    except Exception as exc:
+        if entries:
+            today_price = entries[-1].price
+            print(f"Warning: live benchmark fetch failed, fallback to last known price: {exc}")
+        else:
+            raise
+
     by_day = {item.date: item for item in entries}
     by_day[today_str] = DailyPrice(date=today_str, price=today_price)
     entries = [by_day[key] for key in sorted(by_day.keys())]
@@ -184,6 +324,8 @@ def main() -> None:
             "source_url": SOURCE_URL,
             "window_days": WINDOW_DAYS,
             "updated_at": now_cn.isoformat(timespec="seconds"),
+            "bootstrap_source": EASTMONEY_SOURCE_NAME,
+            "bootstrap_used": bootstrap_used,
         },
         "prices": [asdict(item) for item in entries],
     }
@@ -196,6 +338,10 @@ def main() -> None:
             "url": SOURCE_URL,
         },
         "metric": metrics,
+        "history_status": {
+            "sample_size": len(entries),
+            "bootstrap_used": bootstrap_used,
+        },
         "history_tail": [asdict(item) for item in entries[-30:]],
     }
 

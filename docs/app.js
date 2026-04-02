@@ -15,6 +15,14 @@ function formatPercent(value) {
   return Number(value).toFixed(2) + "%";
 }
 
+function setHistoryHint(text) {
+  setText("historyHint", text);
+}
+
+function setChartHint(text) {
+  setText("chartHint", text);
+}
+
 function paintDecision(decision) {
   const tag = document.getElementById("decisionTag");
   if (!tag) {
@@ -75,9 +83,10 @@ function renderChart(points) {
           borderColor: "#0f8a6b",
           backgroundColor: "rgba(15,138,107,0.12)",
           borderWidth: 2,
-          fill: true,
-          tension: 0.3,
-          pointRadius: 0,
+          fill: values.length > 1,
+          tension: values.length > 2 ? 0.3 : 0,
+          pointRadius: values.length === 1 ? 5 : 0,
+          pointHoverRadius: values.length === 1 ? 6 : 3,
         },
       ],
     },
@@ -114,12 +123,14 @@ function renderChart(points) {
 
 function renderEmpty() {
   setText("updatedAt", "No data yet. Run updater script first.");
+  setHistoryHint("History window is empty.");
   setText("decisionTag", "--");
   setText("decisionText", "No decision available.");
   setText("bargainIndex", "--");
   setText("todayPrice", "--");
   setText("pricePercentile", "--");
   setText("sampleSize", "0");
+  setChartHint("No chart data available.");
 }
 
 function render(latest, history) {
@@ -139,6 +150,20 @@ function render(latest, history) {
   setText("pricePercentile", formatPercent(metric.price_percentile));
   setText("sampleSize", String(metric.sample_size));
   paintDecision(metric.decision);
+
+  const sampleSize = Number(metric.sample_size || 0);
+  if (sampleSize < 30) {
+    setHistoryHint("历史样本较少，系统正在自动回填近一年基准曲线。");
+  } else {
+    setHistoryHint("已加载过去一年样本。指数会按天自动刷新。");
+  }
+  if (sampleSize === 1) {
+    setChartHint("当前仅 1 个样本点，图中显示为单点。请等待自动积累或执行回填更新。");
+  } else if (sampleSize < 30) {
+    setChartHint("样本较少，曲线波动仅供参考。");
+  } else {
+    setChartHint("基于 365 天窗口的代表性基准油价走势。");
+  }
 
   renderChart(prices);
   renderTail(prices);

@@ -21,6 +21,7 @@
         <p class="kicker">Fill or Walk</p>
         <h1>加油经济指数</h1>
         <p id="updatedAt" class="subtitle">Waiting for latest data...</p>
+        <p id="historyHint" class="history-hint"></p>
       </header>
 
       <section class="decision-card reveal delay-1">
@@ -54,7 +55,10 @@
         <div class="section-title-row">
           <h2>365-Day Benchmark Trend</h2>
         </div>
-        <canvas id="priceChart" aria-label="fuel price trend" role="img"></canvas>
+        <p id="chartHint" class="chart-hint"></p>
+        <div class="chart-viewport">
+          <canvas id="priceChart" aria-label="fuel price trend" role="img"></canvas>
+        </div>
       </section>
 
       <section class="tail-card reveal delay-4">
