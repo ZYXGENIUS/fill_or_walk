@@ -15,6 +15,38 @@ function formatPercent(value) {
   return Number(value).toFixed(2) + "%";
 }
 
+function formatPercentMaybe(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "--";
+  }
+  return formatPercent(numeric);
+}
+
+function clampPercent(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return null;
+  }
+  return Math.min(100, Math.max(0, numeric));
+}
+
+function setPercentileBar(maskId, value) {
+  const mask = document.getElementById(maskId);
+  if (!mask) {
+    return;
+  }
+
+  const pct = clampPercent(value);
+  if (pct === null) {
+    mask.style.width = "100%";
+    return;
+  }
+
+  const remainder = 100 - pct;
+  mask.style.width = `${remainder.toFixed(2)}%`;
+}
+
 function setHistoryHint(text) {
   setText("historyHint", text);
 }
@@ -72,6 +104,17 @@ function resolveBargainIndex(metric) {
   }
 
   return null;
+}
+
+function resolvePeriodPercentiles(metric) {
+  const periods = (metric && metric.period_percentiles) || {};
+
+  return {
+    past30: periods.past_30_days && periods.past_30_days.value,
+    thisMonth: periods.this_month && periods.this_month.value,
+    thisQuarter: periods.this_quarter && periods.this_quarter.value,
+    past120: periods.past_120_days && periods.past_120_days.value,
+  };
 }
 
 function paintDecision(decision) {
@@ -175,13 +218,22 @@ function renderChart(points) {
 
 function renderEmpty() {
   setText("updatedAt", "暂无数据，请先执行更新脚本。");
-  setHistoryHint("历史窗口当前为空。请稍后重试。")
+  setHistoryHint("历史窗口当前为空。请稍后重试。");
   setText("decisionTag", "--");
-  setText("decisionText", "暂无决策建议。")
+  setText("decisionText", "暂无决策建议。");
   setText("bargainIndex", "--");
   setText("todayPrice", "--");
   setText("pricePercentile", "--");
   setText("sampleSize", "0");
+  setText("pricePercentile30d", "--");
+  setText("pricePercentileMonth", "--");
+  setText("pricePercentileQuarter", "--");
+  setText("pricePercentile120d", "--");
+  setPercentileBar("barPricePercentile", null);
+  setPercentileBar("barPricePercentile30d", null);
+  setPercentileBar("barPricePercentileMonth", null);
+  setPercentileBar("barPricePercentileQuarter", null);
+  setPercentileBar("barPricePercentile120d", null);
   setChartHint("暂无图表数据。");
 }
 
@@ -196,6 +248,7 @@ function render(latest, history) {
 
   const decision = normalizeDecision(metric.decision);
   const bargainIndex = resolveBargainIndex(metric);
+  const periodPercentiles = resolvePeriodPercentiles(metric);
 
   setText("updatedAt", "更新时间：" + latest.updated_at);
   setText("decisionTag", decisionLabel(decision));
@@ -204,6 +257,15 @@ function render(latest, history) {
   setText("todayPrice", formatPrice(metric.today_price));
   setText("pricePercentile", formatPercent(metric.price_percentile));
   setText("sampleSize", String(metric.sample_size || prices.length));
+  setText("pricePercentile30d", formatPercentMaybe(periodPercentiles.past30));
+  setText("pricePercentileMonth", formatPercentMaybe(periodPercentiles.thisMonth));
+  setText("pricePercentileQuarter", formatPercentMaybe(periodPercentiles.thisQuarter));
+  setText("pricePercentile120d", formatPercentMaybe(periodPercentiles.past120));
+  setPercentileBar("barPricePercentile", metric.price_percentile);
+  setPercentileBar("barPricePercentile30d", periodPercentiles.past30);
+  setPercentileBar("barPricePercentileMonth", periodPercentiles.thisMonth);
+  setPercentileBar("barPricePercentileQuarter", periodPercentiles.thisQuarter);
+  setPercentileBar("barPricePercentile120d", periodPercentiles.past120);
   paintDecision(decision);
 
   const sampleSize = Number(metric.sample_size || prices.length || 0);

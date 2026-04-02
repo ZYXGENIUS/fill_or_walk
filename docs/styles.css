@@ -134,6 +134,37 @@ h1 {
   gap: 10px;
 }
 
+.period-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.period-card .value {
+  font-size: clamp(1rem, 4.6vw, 1.4rem);
+}
+
+.percentile-progress {
+  margin-top: 8px;
+}
+
+.percentile-progress-track {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: linear-gradient(90deg, #22c55e 0%, #f59e0b 52%, #ef4444 100%);
+  border: 1px solid rgba(28, 46, 43, 0.16);
+}
+
+.percentile-progress-mask {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.78);
+  transition: width 260ms ease;
+}
+
 .stat-card {
   padding: 14px;
 }
@@ -210,6 +241,10 @@ h1 {
 
 .delay-4 {
   animation-delay: 280ms;
+}
+
+.delay-5 {
+  animation-delay: 340ms;
 }
 
 @keyframes rise {

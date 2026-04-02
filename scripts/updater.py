@@ -228,9 +228,64 @@ def apply_window(entries: list[DailyPrice], today: date) -> list[DailyPrice]:
     return filtered
 
 
-def compute_metrics(entries: list[DailyPrice], today_price: float) -> dict[str, Any]:
+def percentile_rank(values: list[float], price: float) -> float | None:
+    if not values:
+        return None
+    lower_or_equal = sum(1 for value in values if value <= price)
+    return round(lower_or_equal / len(values) * 100, 2)
+
+
+def values_in_period(entries: list[DailyPrice], start_day: date, end_day: date) -> list[float]:
+    values: list[float] = []
+    for item in entries:
+        item_day = date.fromisoformat(item.date)
+        if start_day <= item_day <= end_day:
+            values.append(item.price)
+    return values
+
+
+def compute_period_percentiles(entries: list[DailyPrice], today_price: float, today: date) -> dict[str, Any]:
+    month_start = today.replace(day=1)
+    quarter_start_month = ((today.month - 1) // 3) * 3 + 1
+    quarter_start = date(today.year, quarter_start_month, 1)
+
+    period_defs = {
+        "past_30_days": {
+            "label": "过去30天",
+            "start": today - timedelta(days=29),
+        },
+        "this_month": {
+            "label": "本月",
+            "start": month_start,
+        },
+        "this_quarter": {
+            "label": "本季度",
+            "start": quarter_start,
+        },
+        "past_120_days": {
+            "label": "过去120天",
+            "start": today - timedelta(days=119),
+        },
+    }
+
+    result: dict[str, Any] = {}
+    for key, config in period_defs.items():
+        values = values_in_period(entries, config["start"], today)
+        result[key] = {
+            "label": config["label"],
+            "value": percentile_rank(values, today_price),
+            "sample_size": len(values),
+        }
+
+    return result
+
+
+def compute_metrics(entries: list[DailyPrice], today_price: float, today: date) -> dict[str, Any]:
     values = [item.price for item in entries]
     sample_size = len(values)
+
+    if sample_size == 0:
+        raise RuntimeError("No history entries available for metric calculation.")
 
     lower_or_equal = sum(1 for value in values if value <= today_price)
     higher_or_equal = sum(1 for value in values if value >= today_price)
@@ -255,6 +310,8 @@ def compute_metrics(entries: list[DailyPrice], today_price: float) -> dict[str, 
         previous_price = entries[-2].price
         delta_from_previous = round(today_price - previous_price, 3)
 
+    period_percentiles = compute_period_percentiles(entries, today_price, today)
+
     return {
         "fuel_type": "92# gasoline",
         "benchmark": "Beijing",
@@ -269,6 +326,7 @@ def compute_metrics(entries: list[DailyPrice], today_price: float) -> dict[str, 
         "decision_text": decision_text,
         "decision_text_zh": decision_text,
         "delta_from_previous": delta_from_previous,
+        "period_percentiles": period_percentiles,
     }
 
 
@@ -335,7 +393,7 @@ def main() -> None:
         "prices": [asdict(item) for item in entries],
     }
 
-    metrics = compute_metrics(entries, today_price)
+    metrics = compute_metrics(entries, today_price, now_cn.date())
     latest_payload = {
         "updated_at": now_cn.isoformat(timespec="seconds"),
         "source": {
