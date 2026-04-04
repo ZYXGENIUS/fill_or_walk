@@ -26,16 +26,49 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: >
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+      - name: Resolve target branch
+        id: branch
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "name=${{ github.event.workflow_run.head_branch }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+          ref: ${{ steps.branch.outputs.name }}
+          fetch-depth: 0
+
+      - name: Sync to latest remote commit
+        run: |
+          branch="${{ steps.branch.outputs.name }}"
+          git fetch origin "$branch" --depth=1
+          git checkout -B "$branch" "origin/$branch"
+
+      - name: Show deployed snapshot
+        run: |
+          echo "Deploy branch: ${{ steps.branch.outputs.name }}"
+          echo "Deploy commit: $(git rev-parse --short HEAD)"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('docs/data/latest.json')
+          if not p.exists():
+              print('latest.json missing')
+          else:
+              data = json.loads(p.read_text(encoding='utf-8'))
+              print('latest.updated_at =', data.get('updated_at'))
+          PY
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
