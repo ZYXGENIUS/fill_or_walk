@@ -8,6 +8,11 @@ on:
     paths:
       - docs/**
       - .github/workflows/deploy_pages.yml
+  workflow_run:
+    workflows:
+      - Update Fuel Data
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
@@ -21,6 +26,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -28,6 +34,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.ref_name }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
