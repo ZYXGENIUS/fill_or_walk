@@ -6,15 +6,11 @@
     "source_name": "qiyoujiage.com (Beijing benchmark page)",
     "source_url": "http://www.qiyoujiage.com/beijing.shtml",
     "window_days": 365,
-    "updated_at": "2026-05-07T13:42:45+08:00",
+    "updated_at": "2026-05-08T13:12:37+08:00",
     "bootstrap_source": "Eastmoney datacenter oil reports",
     "bootstrap_used": false
   },
   "prices": [
-    {
-      "date": "2025-05-08",
-      "price": 7.1
-    },
     {
       "date": "2025-05-09",
       "price": 7.1
@@ -1469,6 +1465,10 @@
     },
     {
       "date": "2026-05-07",
+      "price": 8.46
+    },
+    {
+      "date": "2026-05-08",
       "price": 8.46
     }
   ]
