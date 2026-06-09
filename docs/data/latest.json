@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-08T15:05:10+08:00",
+  "updated_at": "2026-06-09T14:28:38+08:00",
   "source": {
     "name": "qiyoujiage.com (Beijing benchmark page)",
     "url": "http://www.qiyoujiage.com/beijing.shtml"
@@ -12,7 +12,7 @@
     "window_days": 365,
     "sample_size": 365,
     "price_percentile": 80.0,
-    "bargain_index": 21.1,
+    "bargain_index": 21.37,
     "decision": "WALK",
     "decision_zh": "建议观望",
     "decision_text": "当前价格处于近一年相对高位，建议观望。",
@@ -21,18 +21,18 @@
     "period_percentiles": {
       "past_30_days": {
         "label": "过去30天",
-        "value": 13.33,
+        "value": 16.67,
         "sample_size": 30
       },
       "this_month": {
         "label": "本月",
-        "value": 50.0,
-        "sample_size": 8
+        "value": 55.56,
+        "sample_size": 9
       },
       "this_quarter": {
         "label": "本季度",
-        "value": 5.8,
-        "sample_size": 69
+        "value": 7.14,
+        "sample_size": 70
       },
       "past_120_days": {
         "label": "过去120天",
@@ -46,10 +46,6 @@
     "bootstrap_used": false
   },
   "history_tail": [
-    {
-      "date": "2026-05-10",
-      "price": 8.72
-    },
     {
       "date": "2026-05-11",
       "price": 8.72
@@ -164,6 +160,10 @@
     },
     {
       "date": "2026-06-08",
+      "price": 8.35
+    },
+    {
+      "date": "2026-06-09",
       "price": 8.35
     }
   ]
